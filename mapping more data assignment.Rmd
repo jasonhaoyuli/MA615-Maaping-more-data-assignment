@@ -1,0 +1,74 @@
+---
+title: "Mapping more data"
+author: "Haoyu Li"
+date: "11/8/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(maps)
+library(viridis)
+```
+
+```{r}
+damage<-read.csv("PublicAssistanceFundedProjectsDetails.csv")
+damage_hurricane<-damage%>%filter(incidentType=="Hurricane")
+damage_hurricane$declarationDate<-as.Date(damage_hurricane$declarationDate)
+damage_hurricane<-damage_hurricane%>%filter(declarationDate>="2009-01-01"&declarationDate<="2018-12-31")
+```
+
+```{r}
+#data cleaning
+county<-map_data("county")
+county_state<-damage_hurricane%>%group_by(state,county)%>%summarise(total_project=sum(projectAmount),total_federal=sum(federalShareObligated),total_total=sum(totalObligated))
+county_state$county<-tolower(county_state$county)
+county_state$state<-tolower(county_state$state)
+colnames(county_state)[1]<-"region"
+colnames(county_state)[2]<-"subregion"
+#join county map to current hurricane map
+county%>%right_join(county_state,by=c("region","subregion"))->total_map
+#total_map<-total_map%>%group_by(subregion,group)%>%summarise(long=mean(long),lat=mean(lat),total_project=mean(total_project),total_federal=mean(total_federal),total_total=mean(total_total))
+```
+
+
+```{r}
+#making maps for total project
+total_map$project_legend<-total_map$total_project%>%cut(breaks=c(1.356e+03,1.781e+05,1.012e+06,5.603e+06,9.801e+09),include.lowest=T)
+ggplot()+
+  geom_polygon(data=county,aes(long,lat,group=group),colour="black",fill="white")+
+  geom_polygon(data=total_map,aes(long,lat,group=group,fill=project_legend))+
+  scale_fill_brewer(palette="Reds")+
+  ggtitle("Total project amount by county")+
+  theme(plot.title=element_text(hjust=0.5))
+#scale_fill_continuous(low='white',high='blue',name='project amount')
+```
+
+```{r}
+#for total federal share obligated
+total_map$federal_legend<-total_map$total_federal%>%cut(breaks=c(1.356e+03,1.781e+05,1.012e+06,5.603e+06,9.801e+09),include.lowest=T)
+ggplot()+
+  geom_polygon(data=county,aes(long,lat,group=group),colour="black",fill="white")+
+  geom_polygon(data=total_map,aes(long,lat,group=group,fill=federal_legend))+
+  scale_fill_brewer(palette="Reds")+
+  ggtitle("Total federal obligated amount by county")+
+  theme(plot.title=element_text(hjust=0.5))
+#scale_fill_continuous(low='white',high='blue',name='project amount')
+```
+
+```{r}
+#for total obligated
+total_map$total_legend<-total_map$total_total%>%cut(breaks=c(1.356e+03,1.781e+05,1.012e+06,5.603e+06,9.801e+09),include.lowest=T)
+ggplot()+
+  geom_polygon(data=county,aes(long,lat,group=group),colour="black",fill="white")+
+  geom_polygon(data=total_map,aes(long,lat,group=group,fill=total_legend))+
+  scale_fill_brewer(palette="Reds")+
+  ggtitle("Total obligated amount by county")+
+  theme(plot.title=element_text(hjust=0.5))
+#scale_fill_continuous(low='white',high='blue',name='project amount')
+```
+
+
