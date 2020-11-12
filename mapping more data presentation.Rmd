@@ -1,0 +1,121 @@
+---
+title: "Mapping more data"
+author: "Haoyu Li"
+date: "11/9/2020"
+output: 
+ revealjs::revealjs_presentation:
+    theme: solarized
+    highlight: pygments
+    template: hw_1_html.html
+    css: reveal.css
+    center: false
+    transition: slide
+---
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(revealjs)
+library(tidyverse)
+library(maps)
+library(knitr)
+opts_chunk$set(warning = FALSE, message=FALSE)
+```
+
+# Damage declaration data
+
+<p style="font-size:24px">The "public assistance funded project details" contains data about the declaration of each damage after every disaster. It also contain the project amount, federal obligated amount, and total obligated amount for each damage declaration.</p>
+
+<div style="font-size:12pt; font-weight:bold">
+
+```{r echo=TRUE, warning=FALSE, fig.height=5}
+data<-read.csv("damage_hurricane_1.csv")
+head(data,n=2)
+```
+</div>
+
+## Damage by hurricane
+
+<div style="font-size:12pt; font-weight:bold">
+```{r echo=TRUE, warning=FALSE, fig.height=4.6}
+hurricane<-data%>%select(state,projectAmount,federalShareObligated,totalObligated)
+head(hurricane,n=2)
+```
+</div>
+
+# Data visualization:Hurricane by State
+<p style="font-size:24px">we want to see how many hurricanes happened in each state from 2009 to 2018. In the next slide, we will see project amount for each state</p>
+<div style="font-size:12pt; font-weight:bold">
+```{r}
+hurricane_plot<-data%>%group_by(state)%>%summarise(total_hurricane=n())
+```
+</div>
+
+## plot numbers of hurricane by state
+<div style="font-size:12pt; font-weight:bold">
+```{r}
+ggplot(data=hurricane_plot)+
+  geom_bar(aes(x=state,weight=total_hurricane,fill=state))+
+  coord_flip()
+```
+</div>
+
+
+# Data visualization:Project amount for each state
+<div style="font-size:12pt; font-weight:bold">
+```{r}
+total_project<-data%>%group_by(state)%>%summarise(total_project=sum(projectAmount))
+head(total_project,n=10)
+```
+</div>
+
+## Plot project amount by each state
+<div style="font-size:12pt; font-weight:bold">
+```{r}
+ggplot(data=total_project)+
+  geom_bar(aes(x=state,weight=total_project,fill=state))+
+  coord_flip()
+```
+
+
+</div>
+
+# Making maps
+
+<p style="font-size:24px">Get US state map using maps package</p>
+<div style="font-size:12pt; font-weight:bold">
+```{r echo=TRUE, warning=FALSE, fig.height=5}
+map<-map_data("state")
+head(map,n=10)
+```
+
+</div>
+
+# Making map:Merge data
+<p style="font-size:24px">Merge two data set, one of them is the data set that we've seen before which is the total hurricane for each state, another one is the us state map</p>
+We want to know how many declaration happened in each state
+<div style="font-size:12pt; font-weight:bold">
+```{r}
+total_hurricane<-data%>%group_by(state)%>%summarise(total_hurricane=n())
+total_hurricane<-total_hurricane%>%rename(region=state)
+total_hurricane$region<-tolower(total_hurricane$region)
+map_hurricane<-left_join(total_hurricane,map,by="region")
+head(map_hurricane,n=10)
+```
+
+</div>
+
+# Making map:draw graph
+Total declaration numbers happened in 10 years for each state
+<div style="font-size:12pt; font-weight:bold">
+```{r}
+ggplot()+
+  geom_polygon(data=map_hurricane,mapping=aes(x=long,y=lat,group=group,fill=total_hurricane),colour="black")
+```
+</div>
+
+
+
+
+
+
+
+
